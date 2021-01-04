@@ -1,13 +1,15 @@
-package com.example.enkiduchat
+package com.example.enkiduchat.login
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import com.example.enkiduchat.chat.LastestMessagesActivity
+import com.example.enkiduchat.R
+import com.example.enkiduchat.models.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.ktx.Firebase
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -35,35 +37,43 @@ class MainActivity : AppCompatActivity() {
                 "Please, write your email and password!",
                 Toast.LENGTH_SHORT
             ).show()
-        } else {
-
-            FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener {
-                    if (!it.isSuccessful) return@addOnCompleteListener
-                }
-                .addOnFailureListener {
-                    Log.d("Main", "${it.message}")
-                    Toast.makeText(
-                        applicationContext,
-                        "Incorrect email format",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-            saveUserToFirebaseDB()
+            return
         }
+
+        FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
+            .addOnCompleteListener {
+                if (!it.isSuccessful) return@addOnCompleteListener
+
+                saveUserToFirebaseDB()
+            }
+            .addOnFailureListener {
+                Log.d("Main", "${it.message}")
+                Toast.makeText(
+                    applicationContext,
+                    "Failed to create user: ${it.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
     }
+
 
     private fun saveUserToFirebaseDB() {
         val uid = FirebaseAuth.getInstance().uid ?: ""
-        val ref = FirebaseDatabase.getInstance().getReference("/users/$uid")
+        val ref = FirebaseDatabase.getInstance("https://enkiduchat-default-rtdb.firebaseio.com/").getReference("/users/$uid")
 
-        val user = User(uid, username_field.text.toString())
+        val user =
+            User(
+                uid,
+                username_field.text.toString()
+            )
         ref.setValue(user)
             .addOnSuccessListener {
                 val intent = Intent(this, LastestMessagesActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK.or(Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
+            }
+            .addOnFailureListener {
+
             }
     }
 }
